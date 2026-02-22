@@ -1,15 +1,48 @@
 version: 3
+
 automerge: false
 delete_source_branch_on_merge: true
+
+parallel_plan: true
+parallel_apply: false
+
+apply_requirements:
+  - approved
+
+workflows:
+  terraform:
+    plan:
+      steps:
+        - init:
+            extra_args:
+              - "-input=false"
+        - plan:
+            extra_args:
+              - "-input=false"
+              - "-lock-timeout=20m"
+    apply:
+      steps:
+        - apply:
+            extra_args:
+              - "-input=false"
+              - "-lock-timeout=20m"
 
 projects:
   - name: my-infra
     dir: .
     terraform_version: v1.9.8
+    workflow: terraform
     autoplan:
+      enabled: true
       when_modified:
+        # Terraform code
         - "**/*.tf"
         - "**/*.tfvars"
-      enabled: true
-    apply_requirements:
-      - approved
+        - "**/*.tfvars.json"
+        - "**/.terraform.lock.hcl"
+
+        # Common dirs that often affect plans
+        - "modules/**/*.tf"
+        - "modules/**/*.tfvars"
+        - "modules/**/*.tfvars.json"
+
